@@ -1,102 +1,172 @@
-# OVACS - PHP Landing Page
+# OVACS - Online Vehicle Availability Control System
 
-A modern, responsive landing page built with PHP, HTML5, CSS3, and JavaScript.
+A comprehensive web-based system for managing emergency vehicle availability across multiple stations. Built specifically for ambulance services managing 150+ vehicles across 50+ stations with shift-based operations.
 
 ## Features
 
-- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
-- **Modern UI**: Clean, professional design with smooth animations
-- **Contact Form**: Functional PHP contact form with validation
-- **SEO Friendly**: Semantic HTML structure and meta tags
-- **Fast Loading**: Optimized CSS and JavaScript
-- **Cross-browser Compatible**: Works on all modern browsers
+🚑 **Vehicle Management**
+- Real-time status tracking (Available, In Service, Out of Service, Maintenance)
+- Support for multiple vehicle types (ERU, PTU)
+- Maintenance scheduling and history
+- Status change logging
+
+🏥 **Station Management**
+- 50+ station locations with capacity management
+- Geographic distribution and contact information
+- Vehicle assignment tracking
+
+📋 **Shift Management**
+- Flexible shift patterns (Day, Night, Split, 24-Hour)
+- Staff assignments per station
+- Shift handover logs
+
+📊 **Dashboard & Reporting**
+- Real-time fleet overview
+- Activity monitoring
+- Performance analytics
+- Maintenance reports
+
+## System Requirements
+
+- **PHP 8.0+** with PDO MySQL extension
+- **MySQL 5.7+** or **MariaDB 10.3+**
+- **Web Server** (Apache, Nginx, IIS)
+- Modern web browser
+
+## Quick Setup
+
+### 1. Database Setup
+
+Run the automated setup script:
+```batch
+setup-database.bat
+```
+
+Or manually create the database:
+```sql
+mysql -u root -p < database/schema.sql
+```
+
+### 2. Configuration
+
+Update database credentials in `includes/database.php`:
+```php
+private const DB_HOST = 'localhost';
+private const DB_NAME = 'ovacs_db';
+private const DB_USER = 'your_username';
+private const DB_PASS = 'your_password';
+```
+
+### 3. Test Installation
+
+Visit `database-check.php` to verify your setup:
+- Database connection status
+- Sample data verification
+- System configuration check
+
+### 4. Default Login
+
+- **Username:** admin
+- **Password:** admin123
+
+*Change these credentials after first login!*
+
+## Database Schema
+
+### Core Tables
+- `vehicles` - 150 ambulance records with status tracking
+- `stations` - 50 station locations with capacity info  
+- `vehicle_types` - ERU (Emergency Response Units) and PTU (Patient Transport Units)
+- `shifts` - Flexible shift pattern management
+- `vehicle_status_log` - Complete audit trail of status changes
+- `maintenance_records` - Service history and scheduling
+- `users` - Role-based access control
+- `deployments` - Active operation tracking
+
+### Sample Data Included
+- 20 example vehicles (A001-A012, B001-B008)
+- 10 sample stations (STN001-STN010)
+- Standard shift patterns
+- Admin user account
+
+## Key Pages
+
+| Page | Purpose |
+|------|---------|
+| `index.php` | Main dashboard with fleet overview |
+| `vehicles.php` | Vehicle management and status updates |
+| `stations.php` | Station management and capacity |
+| `database-check.php` | System diagnostics and setup verification |
+
+## Deployment
+
+### For IIS (Windows)
+```batch
+deploy-to-iis.bat
+```
+
+### For GitHub
+```batch
+push-to-github.bat
+```
+
+## Development
+
+Built with:
+- **Backend:** PHP 8+ with PDO
+- **Database:** MySQL with stored procedures and views
+- **Frontend:** HTML5, CSS3 (Grid/Flexbox), Vanilla JavaScript
+- **Design:** Mobile-first responsive design
+- **Fonts:** Inter (Google Fonts)
 
 ## Project Structure
 
 ```
-OVACS/
-├── index.php          # Main landing page
-├── css/
-│   └── style.css      # Stylesheet
-├── js/
-│   └── main.js        # JavaScript functionality
-├── images/            # Image assets (placeholder)
+phpOVACS/
+├── css/style.css           # Main stylesheet
+├── database/
+│   └── schema.sql          # Database creation script
 ├── includes/
-│   ├── header.php     # Header navigation
-│   └── footer.php     # Footer content
-├── .gitignore         # Git ignore file
-└── README.md          # Project documentation
+│   ├── database.php        # Database connection & classes
+│   ├── header.php          # Navigation header
+│   └── footer.php          # Site footer
+├── js/main.js              # JavaScript functionality
+├── index.php               # Main dashboard
+├── vehicles.php            # Vehicle management
+├── database-check.php      # Setup verification
+├── setup-database.bat      # Automated DB setup
+├── deploy-to-iis.bat      # IIS deployment
+└── push-to-github.bat     # GitHub sync
 ```
 
-## Sections
+## Security Features
 
-1. **Hero Section**: Eye-catching introduction with call-to-action buttons
-2. **About Section**: Company information and statistics
-3. **Features Section**: Key benefits and services
-4. **Contact Section**: Contact information and functional contact form
+- SQL injection protection via prepared statements
+- XSS prevention with output escaping
+- Role-based access control
+- Audit logging for all status changes
+- Secure password hashing
 
-## Technologies Used
+## Future Enhancements
 
-- **Backend**: PHP 7.4+
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **Fonts**: Google Fonts (Inter)
-- **Responsive**: CSS Grid and Flexbox
+- [ ] GPS tracking integration
+- [ ] Mobile app for field updates  
+- [ ] CAD system integration
+- [ ] Advanced reporting dashboard
+- [ ] Multi-language support
+- [ ] API endpoints for third-party integration
 
-## Installation & Setup
+## Support
 
-1. **Clone or download** this repository
-2. **Place files** in your web server directory:
-   - For XAMPP: `C:\xampp\htdocs\OVACS\`
-   - For IIS: `C:\inetpub\wwwroot\OVACS\`
-3. **Access** via your browser: `http://localhost/OVACS/`
-
-## Deployment Scripts
-
-You can create deployment scripts for easy updates:
-
-### For IIS:
-```batch
-robocopy "C:\DATA\GIT\phpOVACS" "C:\inetpub\wwwroot\OVACS" *.php *.css *.html *.js /s /e /xd .git .vscode
-```
-
-### For XAMPP:
-```batch
-robocopy "C:\DATA\GIT\phpOVACS" "C:\xampp\htdocs\OVACS" *.php *.css *.html *.js /s /e /xd .git .vscode
-```
-
-## Contact Form
-
-The contact form includes:
-- **Client-side validation** with JavaScript
-- **Server-side validation** with PHP
-- **Email validation** and sanitization
-- **Success/error messages**
-
-## Customization
-
-### Colors
-Main brand colors can be changed in `css/style.css`:
-- Primary: `#2563eb` (Blue)
-- Secondary: `#fbbf24` (Yellow)
-- Dark: `#1f2937` (Dark Gray)
-
-### Content
-Update content in `index.php`:
-- Company name and description
-- Statistics and numbers
-- Contact information
-
-## Browser Support
-
-- Chrome 60+
-- Firefox 55+
-- Safari 12+
-- Edge 79+
-
-## Author
-
-Created with ❤️ for OVACS
+For setup assistance or feature requests, check:
+1. `database-check.php` for system diagnostics
+2. Database connection settings in `includes/database.php`
+3. PHP error logs for detailed error information
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
+Built for emergency services vehicle management. Customize as needed for your organization.
+
+---
+
+**OVACS** - Keeping emergency vehicles available when they're needed most. 🚑
