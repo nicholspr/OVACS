@@ -68,9 +68,21 @@ try {
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 1rem;
             margin: 2rem 0;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
         }
         
         .stat-card {
@@ -176,16 +188,16 @@ try {
                     <div class="stat-label" style="color: rgba(255,255,255,0.9);">Available</div>
                 </div>
                 <div class="stat-card" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                    <div class="stat-number" style="color: white;"><?php echo $summary['total_out_of_service']; ?></div>
+                    <div class="stat-label" style="color: rgba(255,255,255,0.9);">Out of Service</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
                     <div class="stat-number" style="color: white;"><?php echo $summary['total_in_service']; ?></div>
                     <div class="stat-label" style="color: rgba(255,255,255,0.9);">In Service</div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                <div class="stat-card" style="background: linear-gradient(135deg, #eab308, #ca8a04);">
                     <div class="stat-number" style="color: white;"><?php echo $summary['total_maintenance']; ?></div>
                     <div class="stat-label" style="color: rgba(255,255,255,0.9);">Maintenance</div>
-                </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #6b7280, #4b5563);">
-                    <div class="stat-number" style="color: white;"><?php echo $summary['total_out_of_service']; ?></div>
-                    <div class="stat-label" style="color: rgba(255,255,255,0.9);">Out of Service</div>
                 </div>
             </div>
             <?php endif; ?>

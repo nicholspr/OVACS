@@ -169,11 +169,11 @@ function calculateDuration($start, $end) {
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <label for="start_time" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151; font-size: 0.875rem;">Start Time:</label>
-                    <input type="time" id="start_time" name="start_time" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
+                    <input type="time" id="start_time" name="start_time" step="1" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <label for="end_time" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151; font-size: 0.875rem;">End Time:</label>
-                    <input type="time" id="end_time" name="end_time" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
+                    <input type="time" id="end_time" name="end_time" step="1" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <label for="pattern_type" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151; font-size: 0.875rem;">Pattern Type:</label>
@@ -207,11 +207,11 @@ function calculateDuration($start, $end) {
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <label for="edit_start_time" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151; font-size: 0.875rem;">Start Time:</label>
-                    <input type="time" id="edit_start_time" name="start_time" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
+                    <input type="time" id="edit_start_time" name="start_time" step="1" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <label for="edit_end_time" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151; font-size: 0.875rem;">End Time:</label>
-                    <input type="time" id="edit_end_time" name="end_time" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
+                    <input type="time" id="edit_end_time" name="end_time" step="1" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <label for="edit_pattern_type" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151; font-size: 0.875rem;">Pattern Type:</label>

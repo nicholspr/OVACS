@@ -182,17 +182,16 @@ if ($selected_station_id) {
     }
 }
 
-// Calculate vehicle requirements by type for the current hour
-$current_hour_dca = 0;
-$current_hour_rrv = 0;
+// Calculate vehicle requirements by type for the current hour (selected station)
+$current_hour_totals = [];
 $current_hour_time = sprintf('%02d:00', (int)$current_time->format('H'));
 if (isset($timeline_data[$current_hour_time])) {
     foreach ($timeline_data[$current_hour_time] as $combination_key => $combination_data) {
-        if (strpos($combination_key, 'DCA|') !== false) {
-            $current_hour_dca += $combination_data['count'];
-        } elseif (strpos($combination_key, 'RRV|') !== false) {
-            $current_hour_rrv += $combination_data['count'];
+        $type_code = $combination_data['type_code'];
+        if (!isset($current_hour_totals[$type_code])) {
+            $current_hour_totals[$type_code] = ['count' => 0, 'type_name' => $combination_data['type_name']];
         }
+        $current_hour_totals[$type_code]['count'] += $combination_data['count'];
     }
 }
 
@@ -373,7 +372,7 @@ foreach ($systemwide_requirements as $req) {
         
         .summary-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 1rem;
             margin-bottom: 2rem;
         }
@@ -409,7 +408,22 @@ foreach ($systemwide_requirements as $req) {
             box-shadow: inset 0 0 0 2px #fca5a5;
         }
         
+        .hero-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
         @media (max-width: 768px) {
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .hero-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
             .timeline-table th,
             .timeline-table td {
                 padding: 0.5rem 0.25rem;
@@ -419,6 +433,16 @@ foreach ($systemwide_requirements as $req) {
             .vehicle-requirement {
                 padding: 0.3rem;
                 font-size: 0.7rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero-cards {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -432,7 +456,7 @@ foreach ($systemwide_requirements as $req) {
             <p class="hero-subtitle">View vehicle and shift requirements for the next 24 hours</p>
             
             <!-- System-wide Vehicle Requirements Cards -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem;">
+            <div class="hero-cards">
                 <?php 
                 // Define colors for different vehicle types
                 $vehicle_colors = [
@@ -490,15 +514,21 @@ foreach ($systemwide_requirements as $req) {
                     <div class="summary-label"><?php echo htmlspecialchars($selected_station['name']); ?></div>
                 </div>
                 <div class="summary-card">
-                    <div style="display: flex; gap: 1rem; justify-content: center; align-items: center;">
-                        <div style="text-align: center;">
-                            <span class="summary-number" style="font-size: 1.8rem; color: #2563eb;"><?php echo $current_hour_dca; ?></span>
-                            <div style="color: #6b7280; font-size: 0.8rem; font-weight: 600;">DCA</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <span class="summary-number" style="font-size: 1.8rem; color: #ea580c;"><?php echo $current_hour_rrv; ?></span>
-                            <div style="color: #6b7280; font-size: 0.8rem; font-weight: 600;">RRV</div>
-                        </div>
+                    <div style="display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+                        <?php 
+                        $vehicle_colors = [
+                            'DCA' => '#2563eb',
+                            'RRV' => '#ea580c', 
+                            'ORV' => '#7c3aed'
+                        ];
+                        foreach ($current_hour_totals as $type_code => $data): 
+                            $color = $vehicle_colors[$type_code] ?? '#6b7280';
+                        ?>
+                            <div style="text-align: center;">
+                                <span class="summary-number" style="font-size: 1.8rem; color: <?php echo $color; ?>;"><?php echo $data['count']; ?></span>
+                                <div style="color: #6b7280; font-size: 0.8rem; font-weight: 600;"><?php echo htmlspecialchars($type_code); ?></div>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
                     <div class="summary-label">Vehicles Required Now</div>
                 </div>
@@ -511,39 +541,54 @@ foreach ($systemwide_requirements as $req) {
                     // Find the next change in requirements
                     $current_hour_key = $current_time->format('H:00');
                     $next_change_time = null;
-                    $next_change_dca = 0;
-                    $next_change_rrv = 0;
+                    $next_change_totals = [];
                     
                     // Sort timeline hours to check in order
                     $timeline_hours = array_keys($timeline_data);
                     sort($timeline_hours);
 
-                    // Find current requirements for comparison
-                    $current_requirements_dca = $current_hour_dca;
-                    $current_requirements_rrv = $current_hour_rrv;
+                    // Find current requirements for comparison (all vehicle types)
+                    $current_requirements = [];
+                    foreach ($system_wide_totals as $type_code => $data) {
+                        $current_requirements[$type_code] = $data['count'];
+                    }
 
                     // Check each hour after current hour for a change
                     foreach ($timeline_hours as $hour) {
                         if ($hour <= $current_hour_key) continue; // Skip past/current hours
                         
-                        $hour_dca = 0;
-                        $hour_rrv = 0;
+                        $hour_totals = [];
+                        
+                        // Initialize all vehicle type counts to 0
+                        foreach ($system_wide_totals as $type_code => $data) {
+                            $hour_totals[$type_code] = 0;
+                        }
                         
                         if (isset($timeline_data[$hour])) {
                             foreach ($timeline_data[$hour] as $combo_key => $data) {
-                                if (strpos($combo_key, 'DCA|') === 0) {
-                                    $hour_dca += $data['count'];
-                                } elseif (strpos($combo_key, 'RRV|') === 0) {
-                                    $hour_rrv += $data['count'];
+                                // Extract vehicle type from combo key (format: "TYPE|Pattern Name")
+                                $combo_parts = explode('|', $combo_key, 2);
+                                if (count($combo_parts) >= 2) {
+                                    $vehicle_type = $combo_parts[0];
+                                    if (isset($hour_totals[$vehicle_type])) {
+                                        $hour_totals[$vehicle_type] += $data['count'];
+                                    }
                                 }
                             }
                         }
                         
-                        // Check if requirements changed
-                        if ($hour_dca != $current_requirements_dca || $hour_rrv != $current_requirements_rrv) {
+                        // Check if requirements changed for any vehicle type
+                        $requirements_changed = false;
+                        foreach ($current_requirements as $type_code => $current_count) {
+                            if ($hour_totals[$type_code] != $current_count) {
+                                $requirements_changed = true;
+                                break;
+                            }
+                        }
+                        
+                        if ($requirements_changed) {
                             $next_change_time = DateTime::createFromFormat('H:i', $hour);
-                            $next_change_dca = $hour_dca;
-                            $next_change_rrv = $hour_rrv;
+                            $next_change_totals = $hour_totals;
                             break;
                         }
                     }
@@ -553,23 +598,38 @@ foreach ($systemwide_requirements as $req) {
                         foreach ($timeline_hours as $hour) {
                             if ($hour > $current_hour_key) break; // Only check early hours
                             
-                            $hour_dca = 0;
-                            $hour_rrv = 0;
+                            $hour_totals = [];
+                            
+                            // Initialize all vehicle type counts to 0
+                            foreach ($system_wide_totals as $type_code => $data) {
+                                $hour_totals[$type_code] = 0;
+                            }
                             
                             if (isset($timeline_data[$hour])) {
                                 foreach ($timeline_data[$hour] as $combo_key => $data) {
-                                    if (strpos($combo_key, 'DCA|') === 0) {
-                                        $hour_dca += $data['count'];
-                                    } elseif (strpos($combo_key, 'RRV|') === 0) {
-                                        $hour_rrv += $data['count'];
+                                    // Extract vehicle type from combo key
+                                    $combo_parts = explode('|', $combo_key, 2);
+                                    if (count($combo_parts) >= 2) {
+                                        $vehicle_type = $combo_parts[0];
+                                        if (isset($hour_totals[$vehicle_type])) {
+                                            $hour_totals[$vehicle_type] += $data['count'];
+                                        }
                                     }
                                 }
                             }
                             
-                            if ($hour_dca != $current_requirements_dca || $hour_rrv != $current_requirements_rrv) {
+                            // Check if requirements changed for any vehicle type
+                            $requirements_changed = false;
+                            foreach ($current_requirements as $type_code => $current_count) {
+                                if ($hour_totals[$type_code] != $current_count) {
+                                    $requirements_changed = true;
+                                    break;
+                                }
+                            }
+                            
+                            if ($requirements_changed) {
                                 $next_change_time = DateTime::createFromFormat('H:i', $hour);
-                                $next_change_dca = $hour_dca;
-                                $next_change_rrv = $hour_rrv;
+                                $next_change_totals = $hour_totals;
                                 break;
                             }
                         }
@@ -583,15 +643,23 @@ foreach ($systemwide_requirements as $req) {
                     ?>
                     
                     <?php if ($next_change_time): ?>
-                    <div style="display: flex; gap: 1rem; justify-content: center; align-items: center;">
+                    <div style="display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+                        <?php 
+                        // Define colors for different vehicle types
+                        $vehicle_colors = [
+                            'DCA' => '#2563eb',  // Blue
+                            'RRV' => '#ea580c',  // Orange
+                            'ORV' => '#7c3aed'   // Purple
+                        ];
+                        
+                        foreach ($next_change_totals as $type_code => $count): 
+                            $color = isset($vehicle_colors[$type_code]) ? $vehicle_colors[$type_code] : '#6b7280';
+                        ?>
                         <div style="text-align: center;">
-                            <span class="summary-number" style="font-size: 1.8rem; color: #2563eb;"><?php echo $next_change_dca; ?></span>
-                            <div style="color: #6b7280; font-size: 0.8rem; font-weight: 600;">DCA</div>
+                            <span class="summary-number" style="font-size: 1.8rem; color: <?php echo $color; ?>;"><?php echo $count; ?></span>
+                            <div style="color: #6b7280; font-size: 0.8rem; font-weight: 600;"><?php echo $type_code; ?></div>
                         </div>
-                        <div style="text-align: center;">
-                            <span class="summary-number" style="font-size: 1.8rem; color: #ea580c;"><?php echo $next_change_rrv; ?></span>
-                            <div style="color: #6b7280; font-size: 0.8rem; font-weight: 600;">RRV</div>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
                     <div class="summary-label">Next Change: <?php echo $next_change_time->format('H:i'); ?></div>
                     <?php else: ?>
