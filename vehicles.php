@@ -159,8 +159,8 @@ try {
                             <label style="display: block; margin-bottom: 5px; font-weight: 600;">Vehicle Type:</label>
                             <select name="type" style="padding: 8px 12px !important; border: 1px solid #ced4da !important; border-radius: 5px !important; background: white !important; min-width: 180px !important; pointer-events: auto !important; z-index: 999 !important; position: relative !important;">
                                 <option value="">All Vehicle Types</option>
-                                <option value="ERU" <?php echo ($_GET['type'] ?? '') === 'ERU' ? 'selected' : ''; ?>>Emergency Response Units (ERU)</option>
-                                <option value="PTU" <?php echo ($_GET['type'] ?? '') === 'PTU' ? 'selected' : ''; ?>>Patient Transport Units (PTU)</option>
+                                <option value="DCA" <?php echo ($_GET['type'] ?? '') === 'DCA' ? 'selected' : ''; ?>>Double Crewed Ambulance (DCA)</option>
+                                <option value="RRV" <?php echo ($_GET['type'] ?? '') === 'RRV' ? 'selected' : ''; ?>>Rapid Response Car (RRV)</option>
                             </select>
                         </div>
                         
@@ -239,7 +239,19 @@ try {
                             <tr style="border-bottom: 1px solid #f3f4f6;">
                                 <td style="padding: 1rem; font-weight: 500;"><?php echo htmlspecialchars($vehicle['vehicle_id']); ?></td>
                                 <td style="padding: 1rem;"><?php echo htmlspecialchars($vehicle['type_name']); ?></td>
-                                <td style="padding: 1rem;"><?php echo htmlspecialchars($vehicle['station_name']); ?></td>
+                                <td style="padding: 1rem;">
+                                    <div style="font-weight: 500;"><?php echo htmlspecialchars($vehicle['station_name']); ?></div>
+                                    <div style="font-size: 0.85rem; color: #6b7280; margin-top: 2px;">
+                                        <?php 
+                                        $address_parts = [];
+                                        if (!empty($vehicle['station_address'])) $address_parts[] = $vehicle['station_address'];
+                                        if (!empty($vehicle['station_city'])) $address_parts[] = $vehicle['station_city'];
+                                        if (!empty($vehicle['station_province'])) $address_parts[] = $vehicle['station_province'];
+                                        if (!empty($vehicle['station_postal_code'])) $address_parts[] = $vehicle['station_postal_code'];
+                                        echo htmlspecialchars(implode(', ', $address_parts));
+                                        ?>
+                                    </div>
+                                </td>
                                 <td style="padding: 1rem;">
                                     <span style="background: <?php echo $statusColor; ?>; color: white; padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.85rem;">
                                         <?php echo htmlspecialchars($vehicle['status']); ?>

@@ -6,7 +6,7 @@ A comprehensive web-based system for managing emergency vehicle availability acr
 
 🚑 **Vehicle Management**
 - Real-time status tracking (Available, In Service, Out of Service, Maintenance)
-- Support for multiple vehicle types (ERU, PTU)
+- Support for multiple vehicle types (DCA, RRV)
 - Maintenance scheduling and history
 - Status change logging
 
@@ -76,7 +76,7 @@ Visit `database-check.php` to verify your setup:
 ### Core Tables
 - `vehicles` - 150 ambulance records with status tracking
 - `stations` - 50 station locations with capacity info  
-- `vehicle_types` - ERU (Emergency Response Units) and PTU (Patient Transport Units)
+- `vehicle_types` - DCA (Double Crewed Ambulance) and RRV (Rapid Response Car)
 - `shifts` - Flexible shift pattern management
 - `vehicle_status_log` - Complete audit trail of status changes
 - `maintenance_records` - Service history and scheduling

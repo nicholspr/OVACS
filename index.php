@@ -97,11 +97,26 @@
                     <a href="shifts.php" class="btn btn-secondary" style="margin-top: 10px;">Manage Shifts</a>
                 </div>
                 <div class="feature">
-                    <div class="feature-icon">📊</div>
+                    <div class="feature-icon">�</div>
+                    <h3 class="feature-title">Station Requirements</h3>
+                    <p class="feature-description">Define vehicle requirements for each station by shift type and vehicle category.</p>
+                    <a href="requirements.php" class="btn btn-secondary" style="margin-top: 10px;">Manage Requirements</a>
+                </div>
+                <div class="feature">                    <div class="feature-icon">📅</div>
+                    <h3 class="feature-title">24-Hour Schedule</h3>
+                    <p class="feature-description">Plan and visualize vehicle and shift requirements for the next 24 hours by station.</p>
+                    <a href="schedule.php" class="btn btn-secondary" style="margin-top: 10px;">View Schedule</a>
+                </div>                <div class="feature">
+                    <div class="feature-icon">⚙️</div>
+                    <h3 class="feature-title">System Administration</h3>
+                    <p class="feature-description">Access administrative functions and system configuration settings.</p>
+                    <a href="admin.php" class="btn btn-secondary" style="margin-top: 10px;">Admin Panel</a>
+                </div>                <div class="feature">                    <div class="feature-icon">�📊</div>
                     <h3 class="feature-title">Reports & Analytics</h3>
                     <p class="feature-description">Generate reports on vehicle utilization, response times, and fleet performance.</p>
                     <a href="reports.php" class="btn btn-secondary" style="margin-top: 10px;">View Reports</a>
                 </div>
+
             </div>
         </div>
     </section>

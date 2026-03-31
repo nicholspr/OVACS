@@ -95,6 +95,49 @@ try {
             font-size: 0.9rem;
             margin-top: 0.5rem;
         }
+        
+        /* Tables */
+        .table-responsive {
+            overflow-x: auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #374151;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background: #f9fafb;
+        }
+        
+        .station-name {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .station-address {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 2px;
+        }
     </style>
 </head>
 <body>
@@ -207,112 +250,104 @@ try {
         </div>
     </section>
 
-    <!-- Stations List -->
-    <section style="padding: 2rem 0;">
-        <div class="container">
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+    <!-- Station Table -->
+    <section class="container" style="margin-top: 2rem; margin-bottom: 2rem;">
+        <?php if (empty($stations)): ?>
+            <div style="background: white; padding: 3rem; text-align: center; border-radius: 15px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+                <?php if (isset($error)): ?>
+                    <div style="color: #ef4444; font-size: 1.2rem; margin-bottom: 1rem;">❌ Unable to load stations</div>
+                    <div style="color: #6b7280;"><?php echo htmlspecialchars($error); ?></div>
+                <?php elseif (!empty($filters)): ?>
+                    <div style="color: #2563eb; font-size: 1.2rem; margin-bottom: 1rem;">🔍 No stations found</div>
+                    <div style="color: #6b7280;">No stations match your criteria. <a href="stations.php" style="color: #2563eb; text-decoration: none; font-weight: 600;">Clear filters</a> to see all stations.</div>
+                <?php else: ?>
+                    <div style="color: #6b7280; font-size: 1.2rem;">📋 No stations found</div>
+                <?php endif; ?>
+            </div>
+        <?php else: ?>
+            <!-- Station Table -->
+            <div class="table-responsive">
+                <table>
                     <thead>
-                        <tr style="background: #f8fafc; border-bottom: 2px solid #e5e7eb;">
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Station Code</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Name</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Division</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Capacity</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Vehicles</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Contact</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Status</th>
+                        <tr>
+                            <th>Station Code</th>
+                            <th>Division</th>
+                            <th>Name</th>
+                            <th>Requirements</th>
+                            <th>Vehicles</th>
+                            <th>Status</th>
+                            <th>%Fullfillment</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($stations)): ?>
+                        <?php foreach ($stations as $station): 
+                            $totalCapacity = $station['capacity_dca'] + $station['capacity_rrv'];
+                            $totalVehicles = $station['total_vehicles'];
+                            $utilizationPercent = $totalCapacity > 0 ? round(($totalVehicles / $totalCapacity) * 100) : 0;
+                        ?>
                             <tr>
-                                <td colspan="7" style="padding: 2rem; text-align: center; color: #6b7280;">
-                                    <?php if (isset($error)): ?>
-                                        ❌ Unable to load stations: <?php echo htmlspecialchars($error); ?>
-                                    <?php elseif (!empty($filters)): ?>
-                                        🔍 No stations found matching your criteria. <a href="stations.php">Clear filters</a> to see all stations.
-                                    <?php else: ?>
-                                        📋 No stations found.
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($stations as $station): 
-                                $totalCapacity = $station['capacity_eru'] + $station['capacity_ptu'];
-                                $totalVehicles = $station['total_vehicles'];
-                                $utilizationPercent = $totalCapacity > 0 ? round(($totalVehicles / $totalCapacity) * 100) : 0;
-                                
-                                $statusColor = match(true) {
-                                    $utilizationPercent >= 90 => '#ef4444', // Red - overutilized
-                                    $utilizationPercent >= 70 => '#f59e0b', // Orange - high utilization
-                                    $utilizationPercent >= 40 => '#10b981', // Green - good utilization
-                                    default => '#6b7280' // Gray - low utilization
-                                };
-                            ?>
-                            <tr style="border-bottom: 1px solid #f3f4f6;">
-                                <td style="padding: 1rem; font-weight: 500;">
-                                    <div style="font-weight: 600;"><?php echo htmlspecialchars($station['station_code']); ?></div>
-                                </td>
-                                <td style="padding: 1rem;">
-                                    <div style="font-weight: 600;"><?php echo htmlspecialchars($station['name']); ?></div>
-                                    <div style="font-size: 0.85rem; color: #6b7280;">
-                                        <?php echo htmlspecialchars($station['address'] ?? ''); ?>
-                                    </div>
-                                </td>
-                                <td style="padding: 1rem;">
-                                    <div style="font-weight: 600; color: #2563eb;"><?php echo htmlspecialchars($station['division']); ?> Division</div>
-                                    <div style="font-size: 0.85rem; color: #6b7280;">
-                                        <?php echo htmlspecialchars($station['city'] . ', ' . $station['postcode']); ?>
-                                    </div>
-                                </td>
-                                <td style="padding: 1rem; text-align: center;">
-                                    <div style="font-weight: 600;"><?php echo $totalCapacity; ?></div>
-                                    <div style="font-size: 0.8rem; color: #6b7280;">
-                                        ERU: <?php echo $station['capacity_eru']; ?> | PTU: <?php echo $station['capacity_ptu']; ?>
-                                    </div>
-                                </td>
-                                <td style="padding: 1rem; text-align: center;">
-                                    <div style="font-weight: 600; color: <?php echo $statusColor; ?>;">
-                                        <?php echo $totalVehicles; ?>/<?php echo $totalCapacity; ?>
-                                    </div>
-                                    <div style="font-size: 0.75rem; line-height: 1.2; color: #6b7280;">
-                                        <?php if ($station['available_vehicles'] > 0): ?>
-                                            <div style="margin: 2px 0;"><span style="color: #10b981;">✅ <?php echo $station['available_vehicles']; ?> Available</span></div>
-                                        <?php endif; ?>
-                                        <?php if ($station['in_service_vehicles'] > 0): ?>
-                                            <div style="margin: 2px 0;"><span style="color: #ef4444;">🚨 <?php echo $station['in_service_vehicles']; ?> In Service</span></div>
-                                        <?php endif; ?>
-                                        <?php if ($station['maintenance_vehicles'] > 0): ?>
-                                            <div style="margin: 2px 0;"><span style="color: #f59e0b;">🔧 <?php echo $station['maintenance_vehicles']; ?> Maintenance</span></div>
-                                        <?php endif; ?>
-                                        <?php if ($station['out_of_service_vehicles'] > 0): ?>
-                                            <div style="margin: 2px 0;"><span style="color: #6b7280;">❌ <?php echo $station['out_of_service_vehicles']; ?> Out of Service</span></div>
-                                        <?php endif; ?>
-                                        <?php if ($totalVehicles == 0): ?>
-                                            <div style="color: #9ca3af; font-style: italic;">No vehicles assigned</div>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                                <td style="padding: 1rem; font-size: 0.85rem;">
-                                    <?php if ($station['phone']): ?>
-                                        <div>📞 <?php echo htmlspecialchars($station['phone']); ?></div>
-                                    <?php endif; ?>
-                                    <?php if ($station['email']): ?>
-                                        <div>📧 <?php echo htmlspecialchars($station['email']); ?></div>
-                                    <?php endif; ?>
-                                </td>
-                                <td style="padding: 1rem; text-align: center;">
-                                    <span style="background: <?php echo $statusColor; ?>; color: white; padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.8rem;">
-                                        <?php echo $utilizationPercent; ?>% Used
+                                <td>
+                                    <span style="background: #2563eb; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
+                                        <?php echo htmlspecialchars($station['station_code']); ?>
                                     </span>
                                 </td>
+                                <td><?php echo htmlspecialchars($station['division']); ?></td>
+                                <td>
+                                    <div class="station-name"><?php echo htmlspecialchars($station['name']); ?></div>
+                                    <div class="station-address">
+                                        <?php 
+                                        $addressParts = [];
+                                        if (!empty($station['address'])) $addressParts[] = $station['address'];
+                                        if (!empty($station['city'])) $addressParts[] = $station['city'];
+                                        if (!empty($station['postcode'])) $addressParts[] = $station['postcode'];
+                                        echo htmlspecialchars(implode(', ', $addressParts));
+                                        ?>
+                                    </div>
+                                    <div style="font-size: 0.85rem; margin-top: 4px;">
+                                        <?php if ($station['phone']): ?>
+                                            <div style="margin: 2px 0; color: #6b7280;">📞 <?php echo htmlspecialchars($station['phone']); ?></div>
+                                        <?php endif; ?>
+                                        <?php if ($station['email']): ?>
+                                            <div style="margin: 2px 0; color: #6b7280;">📧 <?php echo htmlspecialchars($station['email']); ?></div>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;"><?php echo $totalCapacity; ?> total</div>
+                                    <div style="font-size: 0.85rem; color: #6b7280;">DCA: <?php echo $station['capacity_dca']; ?> | RRV: <?php echo $station['capacity_rrv']; ?></div>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;"><?php echo $totalVehicles; ?> active</div>
+                                    <div style="font-size: 0.8rem; color: #10b981;">✅ <?php echo $station['available_vehicles']; ?> available</div>
+                                    <?php if ($station['in_service_vehicles'] > 0): ?>
+                                        <div style="font-size: 0.8rem; color: #ef4444;">🚨 <?php echo $station['in_service_vehicles']; ?> in service</div>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <div style="font-size: 0.85rem;">
+                                        <div style="color: #10b981;">✅ <?php echo $station['available_vehicles']; ?> available</div>
+                                        <?php if ($station['maintenance_vehicles'] > 0): ?>
+                                            <div style="color: #f59e0b;">🔧 <?php echo $station['maintenance_vehicles']; ?> maintenance</div>
+                                        <?php endif; ?>
+                                        <?php if ($station['out_of_service_vehicles'] > 0): ?>
+                                            <div style="color: #6b7280;">❌ <?php echo $station['out_of_service_vehicles']; ?> out of service</div>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600; color: <?php 
+                                        echo $utilizationPercent >= 90 ? '#ef4444' : 
+                                            ($utilizationPercent >= 70 ? '#f59e0b' : 
+                                            ($utilizationPercent >= 40 ? '#10b981' : '#6b7280'));
+                                    ?>;"><?php echo $utilizationPercent; ?>%</div>
+                                    <div style="font-size: 0.8rem; color: #6b7280;">fullfillment</div>
+                                </td>
                             </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
-        </div>
+        <?php endif; ?>
     </section>
 
     <?php include 'includes/footer.php'; ?>

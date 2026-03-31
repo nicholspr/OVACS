@@ -200,7 +200,7 @@ class StationManager {
         }
 
         if (!empty($filters['capacity_min'])) {
-            $sql .= " AND (s.capacity_eru + s.capacity_ptu) >= :capacity_min";
+            $sql .= " AND (s.capacity_dca + s.capacity_rrv) >= :capacity_min";
             $params[':capacity_min'] = $filters['capacity_min'];
         }
 
@@ -237,8 +237,8 @@ class StationManager {
         $sql = "SELECT 
                     COUNT(DISTINCT s.id) as total_stations,
                     COUNT(DISTINCT s.division) as total_divisions,
-                    SUM(DISTINCT s.capacity_eru + s.capacity_ptu) as total_capacity,
-                    AVG(DISTINCT s.capacity_eru + s.capacity_ptu) as avg_capacity,
+                    SUM(DISTINCT s.capacity_dca + s.capacity_rrv) as total_capacity,
+                    AVG(DISTINCT s.capacity_dca + s.capacity_rrv) as avg_capacity,
                     COUNT(v.id) as total_vehicles,
                     SUM(CASE WHEN v.status = 'Available' THEN 1 ELSE 0 END) as total_available,
                     SUM(CASE WHEN v.status = 'In Service' THEN 1 ELSE 0 END) as total_in_service,
