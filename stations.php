@@ -3,8 +3,6 @@
  * OVACS - Station Management
  * Online Vehicle Availability Control System - Station Management Page
  */
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
 // Include database first
 include 'includes/database.php';
@@ -15,7 +13,6 @@ $stationManager = new StationManager();
 // Get filters from URL
 $filters = [];
 if (!empty($_GET['division'])) $filters['division'] = $_GET['division'];
-if (!empty($_GET['postcode'])) $filters['postcode'] = $_GET['postcode'];
 if (!empty($_GET['capacity_min'])) $filters['capacity_min'] = $_GET['capacity_min'];
 
 // Get data
@@ -199,7 +196,6 @@ try {
                     <?php
                     $activeFilters = [];
                     if (!empty($filters['division'])) $activeFilters[] = "Division: " . $filters['division'];
-                    if (!empty($filters['postcode'])) $activeFilters[] = "Postcode: " . $filters['postcode'];
                     if (!empty($filters['capacity_min'])) $activeFilters[] = "Min Capacity: " . $filters['capacity_min'];
                     echo htmlspecialchars(implode(', ', $activeFilters));
                     ?> | Showing <?php echo count($stations); ?> of <?php echo count($allStations); ?> stations
@@ -220,13 +216,6 @@ try {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
-                        
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Postcode:</label>
-                            <input type="text" name="postcode" value="<?php echo htmlspecialchars($_GET['postcode'] ?? ''); ?>" 
-                                   placeholder="e.g. SW1, M1" 
-                                   style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 5px; min-width: 120px;">
                         </div>
                         
                         <div>

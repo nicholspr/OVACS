@@ -57,12 +57,12 @@ private const DB_USER = 'your_username';
 private const DB_PASS = 'your_password';
 ```
 
-### 3. Test Installation
+### 3. Access the System
 
-Visit `database-check.php` to verify your setup:
-- Database connection status
-- Sample data verification
-- System configuration check
+Visit your OVACS installation:
+- Main Dashboard: `http://localhost/OVACS/`
+- Vehicle Management: `http://localhost/OVACS/vehicles.php`
+- Station Management: `http://localhost/OVACS/stations.php`
 
 ### 4. Default Login
 

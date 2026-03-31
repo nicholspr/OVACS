@@ -1,19 +1,16 @@
 <?php
 /**
- * OVACS - Vehicles Management (Fixed Version)
- * This version matches the working test page structure
+ * OVACS - Vehicles Management
  */
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
-// Include database first (like working test pages)
+// Include database
 include 'includes/database.php';
 
 // Initialize managers
 $vehicleManager = new VehicleManager();
 $stationManager = new StationManager();
 
-// Get filters from URL (exactly like test pages)
+// Get filters from URL
 $filters = [];
 if (!empty($_GET['type'])) $filters['type'] = $_GET['type'];
 if (!empty($_GET['status'])) $filters['status'] = $_GET['status'];
@@ -151,7 +148,7 @@ try {
                 </div>
             <?php endif; ?>
             
-            <!-- Filter Controls - Simplified Form (Like Test Pages) -->
+            <!-- Filter Controls -->
             <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 2rem;">
                 <form method="GET" action="vehicles.php" style="display: block !important;">
                     <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: end;">
@@ -294,6 +291,6 @@ try {
 
     <?php include 'includes/footer.php'; ?>
 
-    <!-- JavaScript temporarily disabled for debugging -->
+
 </body>
 </html>

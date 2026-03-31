@@ -280,13 +280,7 @@ class StationManager {
 // Error handling function
 function handleDatabaseError($error) {
     error_log("OVACS Database Error: " . $error);
-    
-    // In production, don't show detailed errors to users
-    if (defined('DEBUG') && DEBUG) {
-        echo "<div class='alert alert-danger'>Database Error: " . htmlspecialchars($error) . "</div>";
-    } else {
-        echo "<div class='alert alert-warning'>A system error occurred. Please try again later.</div>";
-    }
+    echo "<div class='alert alert-warning'>A system error occurred. Please try again later.</div>";
 }
 
 // Initialize database connection on include
