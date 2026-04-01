@@ -3,8 +3,8 @@
  * OVACS - Vehicles Management
  */
 
-// Include database
-include 'includes/database.php';
+require_once 'includes/common.php';
+require_once 'includes/ui_components.php';
 
 // Initialize managers
 $vehicleManager = new VehicleManager();
@@ -12,10 +12,7 @@ $stationManager = new StationManager();
 $statusManager = new StatusManager();
 
 // Get filters from URL
-$filters = [];
-if (!empty($_GET['type'])) $filters['type'] = $_GET['type'];
-if (!empty($_GET['status'])) $filters['status'] = $_GET['status'];
-if (!empty($_GET['station'])) $filters['station'] = $_GET['station'];
+$filters = getFiltersFromUrl(['type', 'status', 'station']);
 
 // Handle status updates
 if (isset($_POST['action']) && $_POST['action'] === 'update_status' && !empty($_POST['vehicle_id']) && !empty($_POST['new_status'])) {
@@ -83,19 +80,7 @@ try {
     $allVehicles = $vehicleManager->getAllVehicles(); // For count comparison
     
     // Get vehicle status counts for hero cards
-    $pdo = DatabaseConfig::getConnection();
-    $statusQuery = $pdo->prepare("
-        SELECT 
-            st.status_name,
-            st.color_code,
-            COUNT(v.id) as count
-        FROM status_types st
-        LEFT JOIN vehicles v ON v.status_id = st.id
-        GROUP BY st.id, st.status_name, st.color_code
-        ORDER BY st.status_name
-    ");
-    $statusQuery->execute();
-    $statusCounts = $statusQuery->fetchAll(PDO::FETCH_ASSOC);
+    $statusCounts = $statusManager->getStatusCounts();
 } catch (Exception $e) {
     $error = "Unable to load data: " . $e->getMessage();
     $vehicles = [];
@@ -207,53 +192,10 @@ try {
             <?php endif; ?>
             
             <!-- Vehicle Status Cards -->
-            <?php if (!empty($statusCounts)): ?>
-                <div class="status-cards">
-                    <?php 
-                    $totalVehicles = 0;
-                    foreach ($statusCounts as $status): 
-                        $totalVehicles += $status['count'];
-                        $gradientStart = $status['color_code'];
-                        $gradientEnd = adjustBrightness($status['color_code'], -20);
-                    ?>
-                        <div style="
-                            background: linear-gradient(135deg, <?php echo $gradientStart; ?> 0%, <?php echo $gradientEnd; ?> 100%);
-                            padding: 1.5rem;
-                            border-radius: 10px;
-                            color: white;
-                            text-align: center;
-                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                            transition: transform 0.2s ease;
-                        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                            <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
-                                <?php echo number_format($status['count']); ?>
-                            </div>
-                            <div style="font-size: 0.875rem; font-weight: 600; opacity: 0.9;">
-                                <?php echo htmlspecialchars($status['status_name']); ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                    
-                    <!-- Total Vehicles Card -->
-                    <div style="
-                        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-                        padding: 1.5rem;
-                        border-radius: 10px;
-                        color: white;
-                        text-align: center;
-                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                        transition: transform 0.2s ease;
-                        border: 2px solid #374151;
-                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
-                            <?php echo number_format($totalVehicles); ?>
-                        </div>
-                        <div style="font-size: 0.875rem; font-weight: 600; opacity: 0.9;">
-                            Total Vehicles
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
+            <?= render4ColumnGrid(function() use ($statusCounts) {
+                $totalVehicles = array_sum(array_column($statusCounts, 'count'));
+                echo renderVehicleStatusCards($statusCounts, $totalVehicles);
+            }) ?>
             
             <!-- Filter Controls -->
             <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 2rem;">

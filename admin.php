@@ -1,23 +1,10 @@
 <?php
-include 'includes/database.php';
+require_once __DIR__ . '/includes/common.php';
+require_once __DIR__ . '/includes/ui_components.php';
 
-// Handle success messages
-$success_message = '';
-$error_message = '';
-
-if (isset($_GET['success'])) {
-    switch ($_GET['success']) {
-        case 'added':
-            $success_message = "✅ Item added successfully!";
-            break;
-        case 'updated':
-            $success_message = "✅ Item updated successfully!";
-            break;
-        case 'deleted':
-            $success_message = "✅ Item deleted successfully!";
-            break;
-    }
-}
+// Handle success messages  
+$success_message = getSuccessMessage();
+$error_message = getErrorMessage();
 ?>
 
 <!DOCTYPE html>

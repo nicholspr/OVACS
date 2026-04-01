@@ -1,4 +1,6 @@
 <?php
+require_once 'includes/common.php';
+require_once 'includes/ui_components.php';
 include 'includes/database.php';
 
 // Get database connection

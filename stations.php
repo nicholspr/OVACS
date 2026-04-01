@@ -4,33 +4,15 @@
  * Online Vehicle Availability Control System - Station Management Page
  */
 
-// Include database first
-include 'includes/database.php';
-
-// Function to adjust color brightness for gradients
-function adjustBrightness($hexColor, $percent) {
-    // Remove the hash if present
-    $hex = ltrim($hexColor, '#');
-    
-    // Parse RGB values
-    $rgb = array_map('hexdec', str_split($hex, 2));
-    
-    // Adjust each component
-    for ($i = 0; $i < 3; $i++) {
-        $rgb[$i] = max(0, min(255, $rgb[$i] + ($rgb[$i] * $percent / 100)));
-    }
-    
-    // Convert back to hex
-    return '#' . sprintf('%02x%02x%02x', $rgb[0], $rgb[1], $rgb[2]);
-}
+require_once 'includes/common.php';
+require_once 'includes/ui_components.php';
 
 // Initialize managers
 $stationManager = new StationManager();
+$statusManager = new StatusManager();
 
 // Get filters from URL
-$filters = [];
-if (!empty($_GET['division'])) $filters['division'] = $_GET['division'];
-// Removed capacity filter - now managed through station_requirements table
+$filters = getFiltersFromUrl(['division']);
 
 // Get data
 try {
@@ -40,19 +22,7 @@ try {
     $divisions = $stationManager->getDivisions();
     
     // Get all status types and their vehicle counts
-    $pdo = DatabaseConfig::getConnection();
-    $statusQuery = $pdo->prepare("
-        SELECT 
-            st.status_name,
-            st.color_code,
-            COUNT(v.id) as vehicle_count
-        FROM status_types st
-        LEFT JOIN vehicles v ON v.status_id = st.id
-        GROUP BY st.id, st.status_name, st.color_code
-        ORDER BY st.status_name
-    ");
-    $statusQuery->execute();
-    $statusTypes = $statusQuery->fetchAll();
+    $statusTypes = $statusManager->getStatusCounts();
 } catch (Exception $e) {
     $error = "Unable to load station data: " . $e->getMessage();
     $stations = [];
@@ -216,16 +186,7 @@ try {
                     <div class="stat-number"><?php echo $summary['total_vehicles']; ?></div>
                     <div class="stat-label">Active Vehicles</div>
                 </div>
-                <?php foreach ($statusTypes as $status): 
-                    // Create gradient background using the status color
-                    $color = $status['color_code'];
-                    $darkerColor = adjustBrightness($color, -20); // Darken for gradient
-                ?>
-                <div class="stat-card" style="background: linear-gradient(135deg, <?php echo $color; ?>, <?php echo $darkerColor; ?>);">
-                    <div class="stat-number" style="color: white;"><?php echo $status['vehicle_count']; ?></div>
-                    <div class="stat-label" style="color: rgba(255,255,255,0.9);"><?php echo htmlspecialchars($status['status_name']); ?></div>
-                </div>
-                <?php endforeach; ?>
+                <?= renderVehicleStatusCards($statusTypes, null) ?>
             </div>
             <?php endif; ?>
             

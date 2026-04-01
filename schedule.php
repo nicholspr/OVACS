@@ -4,11 +4,15 @@
  * Online Vehicle Availability Control System
  */
 
+require_once 'includes/common.php';
+require_once 'includes/ui_components.php';
+
 // Include database configuration
 include 'includes/database.php';
 
 // Get database connection
 $pdo = DatabaseConfig::getConnection();
+$stationManager = new StationManager();
 
 // Handle station selection
 $selected_station_id = $_GET['station_id'] ?? null;

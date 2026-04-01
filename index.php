@@ -12,57 +12,14 @@
 </head>
 <body>
     <?php 
-    include 'includes/header.php'; 
+    require_once 'includes/common.php';
+    require_once 'includes/ui_components.php';
+    include 'includes/header.php';
     
-    // Function to adjust color brightness for gradients
-    if (!function_exists('adjustBrightness')) {
-        function adjustBrightness($hexColor, $adjustPercent) {
-            $hexColor = ltrim($hexColor, '#');
-            if (strlen($hexColor) == 3) {
-                $hexColor = $hexColor[0] . $hexColor[0] . $hexColor[1] . $hexColor[1] . $hexColor[2] . $hexColor[2];
-            }
-            $r = hexdec(substr($hexColor, 0, 2));
-            $g = hexdec(substr($hexColor, 2, 2));
-            $b = hexdec(substr($hexColor, 4, 2));
-            
-            $r = max(0, min(255, $r + ($r * $adjustPercent / 100)));
-            $g = max(0, min(255, $g + ($g * $adjustPercent / 100)));
-            $b = max(0, min(255, $b + ($b * $adjustPercent / 100)));
-            
-            return sprintf('#%02x%02x%02x', $r, $g, $b);
-        }
-    }
-    
-    // Initialize database connection and get real data
-    $fleetStats = ['total' => 150, 'available' => 127, 'in_service' => 18, 'maintenance' => 5];
-    $recentActivity = [];
-    $statusCounts = [];
-    
-    try {
-        include 'includes/database.php';
-        $vehicleManager = new VehicleManager();
-        $statusManager = new StatusManager();
-        $fleetStats = $vehicleManager->getFleetSummary();
-        $recentActivity = $vehicleManager->getRecentActivity(4);
-        
-        // Get vehicle status counts for hero cards
-        $pdo = DatabaseConfig::getConnection();
-        $statusQuery = $pdo->prepare("
-            SELECT 
-                st.status_name,
-                st.color_code,
-                COUNT(v.id) as count
-            FROM status_types st
-            LEFT JOIN vehicles v ON v.status_id = st.id
-            GROUP BY st.id, st.status_name, st.color_code
-            ORDER BY st.status_name
-        ");
-        $statusQuery->execute();
-        $statusCounts = $statusQuery->fetchAll(PDO::FETCH_ASSOC);
-    } catch (Exception $e) {
-        // Fallback to default values if database is not available
-        error_log("Dashboard database error: " . $e->getMessage());
-    }
+    // Get status data using refactored manager
+    $statusManager = new StatusManager();
+    $status_data = $statusManager->getStatusCounts();
+    $total_vehicles = array_sum(array_column($status_data, 'count'));
     ?>
 
     <style>
@@ -115,53 +72,9 @@
                 </div>
                 
                 <!-- Vehicle Status Cards -->
-                <?php if (!empty($statusCounts)): ?>
-                    <div class="status-cards">
-                        <?php 
-                        $totalVehicles = 0;
-                        foreach ($statusCounts as $status): 
-                            $totalVehicles += $status['count'];
-                            $gradientStart = $status['color_code'];
-                            $gradientEnd = adjustBrightness($status['color_code'], -20);
-                        ?>
-                            <div style="
-                                background: linear-gradient(135deg, <?php echo $gradientStart; ?> 0%, <?php echo $gradientEnd; ?> 100%);
-                                padding: 1.5rem;
-                                border-radius: 10px;
-                                color: white;
-                                text-align: center;
-                                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                                transition: transform 0.2s ease;
-                            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                                <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
-                                    <?php echo number_format($status['count']); ?>
-                                </div>
-                                <div style="font-size: 0.875rem; font-weight: 600; opacity: 0.9;">
-                                    <?php echo htmlspecialchars($status['status_name']); ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                        
-                        <!-- Total Vehicles Card -->
-                        <div style="
-                            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-                            padding: 1.5rem;
-                            border-radius: 10px;
-                            color: white;
-                            text-align: center;
-                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                            transition: transform 0.2s ease;
-                            border: 2px solid #374151;
-                        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                            <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
-                                <?php echo number_format($totalVehicles); ?>
-                            </div>
-                            <div style="font-size: 0.875rem; font-weight: 600; opacity: 0.9;">
-                                Total Vehicles
-                            </div>
-                        </div>
-                    </div>
-                <?php endif; ?>
+                <?php echo render4ColumnGrid(function() use ($status_data, $total_vehicles) {
+                    echo renderVehicleStatusCards($status_data, $total_vehicles);
+                }); ?>
             </div>
         </div>
     </section>

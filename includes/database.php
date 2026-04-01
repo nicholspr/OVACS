@@ -5,6 +5,7 @@
  */
 
 // Database Configuration
+if (!class_exists('DatabaseConfig')) {
 class DatabaseConfig {
     // Database connection parameters
     private const DB_HOST = 'localhost';
@@ -59,10 +60,12 @@ class DatabaseConfig {
         ];
     }
 }
+}
 
 /**
  * Vehicle Management Class
  */
+if (!class_exists('VehicleManager')) {
 class VehicleManager {
     private $pdo;
 
@@ -181,10 +184,12 @@ class VehicleManager {
         return $stmt->fetchAll();
     }
 }
+}
 
 /**
  * Station Management Class
  */
+if (!class_exists('StationManager')) {
 class StationManager {
     private $pdo;
 
@@ -293,47 +298,14 @@ class StationManager {
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 }
-
-/**
- * Status Management Class
- */
-class StatusManager {
-    private $pdo;
-
-    public function __construct() {
-        $this->pdo = DatabaseConfig::getConnection();
-    }
-
-    /**
-     * Get all status types
-     */
-    public function getAllStatusTypes() {
-        $sql = "SELECT id, status_name, status_description, color_code 
-                FROM status_types 
-                ORDER BY status_name";
-        
-        $stmt = $this->pdo->query($sql);
-        return $stmt->fetchAll();
-    }
-
-    /**
-     * Get status by name
-     */
-    public function getStatusByName($statusName) {
-        $sql = "SELECT id, status_name, status_description, color_code 
-                FROM status_types 
-                WHERE status_name = ?";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$statusName]);
-        return $stmt->fetch();
-    }
 }
 
 // Error handling function
-function handleDatabaseError($error) {
-    error_log("OVACS Database Error: " . $error);
-    echo "<div class='alert alert-warning'>A system error occurred. Please try again later.</div>";
+if (!function_exists('handleDatabaseError')) {
+    function handleDatabaseError($error) {
+        error_log("OVACS Database Error: " . $error);
+        echo "<div class='alert alert-warning'>A system error occurred. Please try again later.</div>";
+    }
 }
 
 // Initialize database connection on include

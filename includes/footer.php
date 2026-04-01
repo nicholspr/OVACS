@@ -8,3 +8,6 @@
         </ul>
     </div>
 </footer>
+
+<!-- Common JavaScript for all pages -->
+<script src="js/common.js"></script>
