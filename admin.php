@@ -123,8 +123,14 @@ if (isset($_GET['success'])) {
                 <a href="requirements.php" style="background: #2563eb; color: white; text-decoration: none; padding: 1rem 1.5rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.15s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
                     📋 Manage Station Requirements
                 </a>
-                <a href="vehicles.php" style="background: #6b7280; color: white; text-decoration: none; padding: 1rem 1.5rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.15s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                    🚑 Manage Vehicles
+                <a href="status_types.php" style="background: #7c3aed; color: white; text-decoration: none; padding: 1rem 1.5rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.15s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    🏷️ Manage Status Types
+                </a>
+                <a href="vehicle_types.php" style="background: #dc2626; color: white; text-decoration: none; padding: 1rem 1.5rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.15s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    🚗 Manage Vehicle Types
+                </a>
+                <a href="vehicles_management.php" style="background: #3b82f6; color: white; text-decoration: none; padding: 1rem 1.5rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.15s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    🚗 Vehicle Management
                 </a>
                 <a href="stations.php" style="background: #6b7280; color: white; text-decoration: none; padding: 1rem 1.5rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.15s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
                     🏥 Manage Stations

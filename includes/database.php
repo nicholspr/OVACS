@@ -74,19 +74,20 @@ class VehicleManager {
      * Get all vehicles with station and type info
      */
     public function getAllVehicles($filters = []) {
-        $sql = "SELECT v.id, v.vehicle_id, v.status, v.updated_at,
+        $sql = "SELECT v.id, v.vehicle_id, st.status_name as status, v.updated_at,
                        vt.type_name, vt.type_code,
-                       s.station_code, s.name as station_name
+                       s.station_code, s.name as station_name, st.color_code as status_color
                 FROM vehicles v
                 JOIN vehicle_types vt ON v.type_id = vt.id
                 JOIN stations s ON v.station_id = s.id
+                JOIN status_types st ON v.status_id = st.id
                 WHERE v.is_active = TRUE";
 
         $params = [];
 
         // Apply filters
         if (!empty($filters['status'])) {
-            $sql .= " AND v.status = :status";
+            $sql .= " AND st.status_name = :status";
             $params[':status'] = $filters['status'];
         }
 
@@ -113,12 +114,13 @@ class VehicleManager {
     public function getFleetSummary() {
         $sql = "SELECT 
                     COUNT(*) as total,
-                    SUM(CASE WHEN status = 'Available' THEN 1 ELSE 0 END) as available,
-                    SUM(CASE WHEN status = 'In Service' THEN 1 ELSE 0 END) as in_service,
-                    SUM(CASE WHEN status = 'Maintenance' THEN 1 ELSE 0 END) as maintenance,
-                    SUM(CASE WHEN status = 'Out of Service' THEN 1 ELSE 0 END) as out_of_service
-                FROM vehicles 
-                WHERE is_active = TRUE";
+                    SUM(CASE WHEN st.status_name = 'Available' THEN 1 ELSE 0 END) as available,
+                    SUM(CASE WHEN st.status_name = 'In Service' THEN 1 ELSE 0 END) as in_service,
+                    SUM(CASE WHEN st.status_name = 'Maintenance' THEN 1 ELSE 0 END) as maintenance,
+                    SUM(CASE WHEN st.status_name = 'Out of Service' THEN 1 ELSE 0 END) as out_of_service
+                FROM vehicles v
+                JOIN status_types st ON v.status_id = st.id
+                WHERE v.is_active = TRUE";
 
         $stmt = $this->pdo->query($sql);
         return $stmt->fetch();
@@ -131,9 +133,27 @@ class VehicleManager {
         try {
             $this->pdo->beginTransaction();
 
-            // Call stored procedure
-            $stmt = $this->pdo->prepare("CALL UpdateVehicleStatus(?, ?, NULL, ?, ?)");
-            $stmt->execute([$vehicleId, $newStatus, $changedBy, $reason]);
+            // Get current status for logging
+            $currentStatusStmt = $this->pdo->prepare("SELECT st.status_name FROM vehicles v JOIN status_types st ON v.status_id = st.id WHERE v.id = ?");
+            $currentStatusStmt->execute([$vehicleId]);
+            $oldStatus = $currentStatusStmt->fetchColumn();
+
+            // Get status_id from status_name
+            $statusStmt = $this->pdo->prepare("SELECT id FROM status_types WHERE status_name = ?");
+            $statusStmt->execute([$newStatus]);
+            $statusId = $statusStmt->fetchColumn();
+            
+            if (!$statusId) {
+                throw new Exception("Invalid status: " . $newStatus);
+            }
+
+            // Update vehicle status_id
+            $updateStmt = $this->pdo->prepare("UPDATE vehicles SET status_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            $updateStmt->execute([$statusId, $vehicleId]);
+
+            // Log the status change with the old status we captured before the update
+            $logStmt = $this->pdo->prepare("INSERT INTO vehicle_status_log (vehicle_id, previous_status, new_status, changed_by, change_reason) VALUES (?, ?, ?, ?, ?)");
+            $logStmt->execute([$vehicleId, $oldStatus, $newStatus, $changedBy, $reason]);
 
             $this->pdo->commit();
             return true;
@@ -178,12 +198,13 @@ class StationManager {
     public function getAllStations($filters = []) {
         $sql = "SELECT s.*, 
                        COUNT(v.id) as total_vehicles,
-                       SUM(CASE WHEN v.status = 'Available' THEN 1 ELSE 0 END) as available_vehicles,
-                       SUM(CASE WHEN v.status = 'In Service' THEN 1 ELSE 0 END) as in_service_vehicles,
-                       SUM(CASE WHEN v.status = 'Maintenance' THEN 1 ELSE 0 END) as maintenance_vehicles,
-                       SUM(CASE WHEN v.status = 'Out of Service' THEN 1 ELSE 0 END) as out_of_service_vehicles
+                       SUM(CASE WHEN st.status_name = 'Available' THEN 1 ELSE 0 END) as available_vehicles,
+                       SUM(CASE WHEN st.status_name = 'In Service' THEN 1 ELSE 0 END) as in_service_vehicles,
+                       SUM(CASE WHEN st.status_name = 'Maintenance' THEN 1 ELSE 0 END) as maintenance_vehicles,
+                       SUM(CASE WHEN st.status_name = 'Out of Service' THEN 1 ELSE 0 END) as out_of_service_vehicles
                 FROM stations s
                 LEFT JOIN vehicles v ON s.id = v.station_id AND v.is_active = TRUE
+                LEFT JOIN status_types st ON v.status_id = st.id
                 WHERE s.is_active = TRUE";
 
         $params = [];
@@ -197,11 +218,6 @@ class StationManager {
         if (!empty($filters['postcode'])) {
             $sql .= " AND s.postcode LIKE :postcode";
             $params[':postcode'] = '%' . $filters['postcode'] . '%';
-        }
-
-        if (!empty($filters['capacity_min'])) {
-            $sql .= " AND (s.capacity_dca + s.capacity_rrv) >= :capacity_min";
-            $params[':capacity_min'] = $filters['capacity_min'];
         }
 
         $sql .= " GROUP BY s.id ORDER BY s.station_code";
@@ -237,15 +253,16 @@ class StationManager {
         $sql = "SELECT 
                     COUNT(DISTINCT s.id) as total_stations,
                     COUNT(DISTINCT s.division) as total_divisions,
-                    SUM(DISTINCT s.capacity_dca + s.capacity_rrv) as total_capacity,
-                    AVG(DISTINCT s.capacity_dca + s.capacity_rrv) as avg_capacity,
+                    0 as total_capacity,
+                    0 as avg_capacity,
                     COUNT(v.id) as total_vehicles,
-                    SUM(CASE WHEN v.status = 'Available' THEN 1 ELSE 0 END) as total_available,
-                    SUM(CASE WHEN v.status = 'In Service' THEN 1 ELSE 0 END) as total_in_service,
-                    SUM(CASE WHEN v.status = 'Maintenance' THEN 1 ELSE 0 END) as total_maintenance,
-                    SUM(CASE WHEN v.status = 'Out of Service' THEN 1 ELSE 0 END) as total_out_of_service
+                    SUM(CASE WHEN st.status_name = 'Available' THEN 1 ELSE 0 END) as total_available,
+                    SUM(CASE WHEN st.status_name = 'In Service' THEN 1 ELSE 0 END) as total_in_service,
+                    SUM(CASE WHEN st.status_name = 'Maintenance' THEN 1 ELSE 0 END) as total_maintenance,
+                    SUM(CASE WHEN st.status_name = 'Out of Service' THEN 1 ELSE 0 END) as total_out_of_service
                 FROM stations s
                 LEFT JOIN vehicles v ON s.id = v.station_id AND v.is_active = TRUE
+                LEFT JOIN status_types st ON v.status_id = st.id
                 WHERE s.is_active = TRUE";
 
         $stmt = $this->pdo->query($sql);
@@ -274,6 +291,42 @@ class StationManager {
         $sql = "SELECT DISTINCT division FROM stations WHERE is_active = TRUE AND division IS NOT NULL ORDER BY division";
         $stmt = $this->pdo->query($sql);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+}
+
+/**
+ * Status Management Class
+ */
+class StatusManager {
+    private $pdo;
+
+    public function __construct() {
+        $this->pdo = DatabaseConfig::getConnection();
+    }
+
+    /**
+     * Get all status types
+     */
+    public function getAllStatusTypes() {
+        $sql = "SELECT id, status_name, status_description, color_code 
+                FROM status_types 
+                ORDER BY status_name";
+        
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Get status by name
+     */
+    public function getStatusByName($statusName) {
+        $sql = "SELECT id, status_name, status_description, color_code 
+                FROM status_types 
+                WHERE status_name = ?";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$statusName]);
+        return $stmt->fetch();
     }
 }
 

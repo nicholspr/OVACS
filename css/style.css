@@ -151,9 +151,13 @@ body {
 }
 
 .btn-secondary {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.1);
     color: white;
     border: 2px solid white;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
 }
 
 .btn-secondary:hover {
@@ -234,6 +238,7 @@ section {
     border-radius: 15px;
     background: #f8fafc;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
 }
 
 .feature:hover {

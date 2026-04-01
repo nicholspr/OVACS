@@ -7,13 +7,30 @@
 // Include database first
 include 'includes/database.php';
 
+// Function to adjust color brightness for gradients
+function adjustBrightness($hexColor, $percent) {
+    // Remove the hash if present
+    $hex = ltrim($hexColor, '#');
+    
+    // Parse RGB values
+    $rgb = array_map('hexdec', str_split($hex, 2));
+    
+    // Adjust each component
+    for ($i = 0; $i < 3; $i++) {
+        $rgb[$i] = max(0, min(255, $rgb[$i] + ($rgb[$i] * $percent / 100)));
+    }
+    
+    // Convert back to hex
+    return '#' . sprintf('%02x%02x%02x', $rgb[0], $rgb[1], $rgb[2]);
+}
+
 // Initialize managers
 $stationManager = new StationManager();
 
 // Get filters from URL
 $filters = [];
 if (!empty($_GET['division'])) $filters['division'] = $_GET['division'];
-if (!empty($_GET['capacity_min'])) $filters['capacity_min'] = $_GET['capacity_min'];
+// Removed capacity filter - now managed through station_requirements table
 
 // Get data
 try {
@@ -21,12 +38,28 @@ try {
     $allStations = $stationManager->getAllStations(); // For count comparison
     $summary = $stationManager->getStationsSummary();
     $divisions = $stationManager->getDivisions();
+    
+    // Get all status types and their vehicle counts
+    $pdo = DatabaseConfig::getConnection();
+    $statusQuery = $pdo->prepare("
+        SELECT 
+            st.status_name,
+            st.color_code,
+            COUNT(v.id) as vehicle_count
+        FROM status_types st
+        LEFT JOIN vehicles v ON v.status_id = st.id
+        GROUP BY st.id, st.status_name, st.color_code
+        ORDER BY st.status_name
+    ");
+    $statusQuery->execute();
+    $statusTypes = $statusQuery->fetchAll();
 } catch (Exception $e) {
     $error = "Unable to load station data: " . $e->getMessage();
     $stations = [];
     $allStations = [];
     $summary = [];
     $divisions = [];
+    $statusTypes = [];
 }
 ?>
 <!DOCTYPE html>
@@ -183,22 +216,16 @@ try {
                     <div class="stat-number"><?php echo $summary['total_vehicles']; ?></div>
                     <div class="stat-label">Active Vehicles</div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #10b981, #059669);">
-                    <div class="stat-number" style="color: white;"><?php echo $summary['total_available']; ?></div>
-                    <div class="stat-label" style="color: rgba(255,255,255,0.9);">Available</div>
+                <?php foreach ($statusTypes as $status): 
+                    // Create gradient background using the status color
+                    $color = $status['color_code'];
+                    $darkerColor = adjustBrightness($color, -20); // Darken for gradient
+                ?>
+                <div class="stat-card" style="background: linear-gradient(135deg, <?php echo $color; ?>, <?php echo $darkerColor; ?>);">
+                    <div class="stat-number" style="color: white;"><?php echo $status['vehicle_count']; ?></div>
+                    <div class="stat-label" style="color: rgba(255,255,255,0.9);"><?php echo htmlspecialchars($status['status_name']); ?></div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
-                    <div class="stat-number" style="color: white;"><?php echo $summary['total_out_of_service']; ?></div>
-                    <div class="stat-label" style="color: rgba(255,255,255,0.9);">Out of Service</div>
-                </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
-                    <div class="stat-number" style="color: white;"><?php echo $summary['total_in_service']; ?></div>
-                    <div class="stat-label" style="color: rgba(255,255,255,0.9);">In Service</div>
-                </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #eab308, #ca8a04);">
-                    <div class="stat-number" style="color: white;"><?php echo $summary['total_maintenance']; ?></div>
-                    <div class="stat-label" style="color: rgba(255,255,255,0.9);">Maintenance</div>
-                </div>
+                <?php endforeach; ?>
             </div>
             <?php endif; ?>
             
@@ -208,7 +235,7 @@ try {
                     <?php
                     $activeFilters = [];
                     if (!empty($filters['division'])) $activeFilters[] = "Division: " . $filters['division'];
-                    if (!empty($filters['capacity_min'])) $activeFilters[] = "Min Capacity: " . $filters['capacity_min'];
+                    // Capacity filter removed
                     echo htmlspecialchars(implode(', ', $activeFilters));
                     ?> | Showing <?php echo count($stations); ?> of <?php echo count($allStations); ?> stations
                 </div>
@@ -227,17 +254,6 @@ try {
                                         <?php echo htmlspecialchars($division); ?> Division
                                     </option>
                                 <?php endforeach; ?>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Min Capacity:</label>
-                            <select name="capacity_min" style="padding: 8px 12px !important; border: 1px solid #ced4da !important; border-radius: 5px !important; background: white !important; min-width: 120px !important; pointer-events: auto !important; z-index: 999 !important; position: relative !important;">
-                                <option value="">Any</option>
-                                <option value="3" <?php echo ($_GET['capacity_min'] ?? '') === '3' ? 'selected' : ''; ?>>3+ vehicles</option>
-                                <option value="5" <?php echo ($_GET['capacity_min'] ?? '') === '5' ? 'selected' : ''; ?>>5+ vehicles</option>
-                                <option value="7" <?php echo ($_GET['capacity_min'] ?? '') === '7' ? 'selected' : ''; ?>>7+ vehicles</option>
-                                <option value="10" <?php echo ($_GET['capacity_min'] ?? '') === '10' ? 'selected' : ''; ?>>10+ vehicles</option>
                             </select>
                         </div>
                         
@@ -282,7 +298,8 @@ try {
                     </thead>
                     <tbody>
                         <?php foreach ($stations as $station): 
-                            $totalCapacity = $station['capacity_dca'] + $station['capacity_rrv'];
+                            // Capacity now managed through station_requirements table
+                            $totalCapacity = 0;
                             $totalVehicles = $station['total_vehicles'];
                             $utilizationPercent = $totalCapacity > 0 ? round(($totalVehicles / $totalCapacity) * 100) : 0;
                         ?>
@@ -315,7 +332,7 @@ try {
                                 </td>
                                 <td>
                                     <div style="font-weight: 600;"><?php echo $totalCapacity; ?> total</div>
-                                    <div style="font-size: 0.85rem; color: #6b7280;">DCA: <?php echo $station['capacity_dca']; ?> | RRV: <?php echo $station['capacity_rrv']; ?></div>
+                                    <div style="font-size: 0.85rem; color: #6b7280;">Capacity managed via Requirements</div>
                                 </td>
                                 <td>
                                     <div style="font-weight: 600;"><?php echo $totalVehicles; ?> active</div>

@@ -27,8 +27,8 @@ if ($selected_station_id) {
     $selected_station = $stmt->fetch();
 }
 
-// Get current time and next 24 hours
-$current_time = new DateTime();
+// Get current time and next 24 hours (using Europe/London timezone for BST/GMT handling)
+$current_time = new DateTime('now', new DateTimeZone('Europe/London'));
 $start_time_offset = clone $current_time;
 $start_time_offset->sub(new DateInterval('PT4H')); // Start 4 hours before current time
 $end_time = clone $start_time_offset;
@@ -81,7 +81,7 @@ foreach ($system_requirements as $req) {
     $current_time_today = clone $current_time;
     $current_time_today->setTime((int)$current_time->format('H'), (int)$current_time->format('i'), 0);
     
-    $pattern_start_time = DateTime::createFromFormat('H:i:s', $req['start_time']);
+    $pattern_start_time = DateTime::createFromFormat('H:i:s', $req['start_time'], new DateTimeZone('Europe/London'));
     $shift_start = clone $current_time_today;
     $shift_start->setTime((int)$pattern_start_time->format('H'), (int)$pattern_start_time->format('i'), 0);
     
@@ -130,7 +130,7 @@ if ($selected_station_id) {
     
     // Process requirements into timeline format with shift indicators
     foreach ($requirements as $req) {
-        $pattern_start_time = DateTime::createFromFormat('H:i:s', $req['start_time']);
+        $pattern_start_time = DateTime::createFromFormat('H:i:s', $req['start_time'], new DateTimeZone('Europe/London'));
         $duration = $req['duration_hours'];
         $pattern_start_hour = (int)$pattern_start_time->format('H');
         $pattern_end_hour = ($pattern_start_hour + $duration) % 24;
@@ -211,7 +211,7 @@ $systemwide_requirements = $systemwide_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 foreach ($systemwide_requirements as $req) {
     // Check if this shift pattern is currently active using precise time calculations
-    $pattern_start = DateTime::createFromFormat('H:i:s', $req['start_time']);
+    $pattern_start = DateTime::createFromFormat('H:i:s', $req['start_time'], new DateTimeZone('Europe/London'));
     $pattern_duration_hours = $req['duration_hours'];
     $pattern_end = clone $pattern_start;
     $pattern_end->add(new DateInterval('PT' . $pattern_duration_hours . 'H'));
@@ -521,7 +521,10 @@ foreach ($systemwide_requirements as $req) {
                             'RRV' => '#ea580c', 
                             'ORV' => '#7c3aed'
                         ];
-                        foreach ($current_hour_totals as $type_code => $data): 
+                        // Sort vehicle types for consistent ordering
+                        $sorted_current_totals = $current_hour_totals;
+                        ksort($sorted_current_totals);
+                        foreach ($sorted_current_totals as $type_code => $data): 
                             $color = $vehicle_colors[$type_code] ?? '#6b7280';
                         ?>
                             <div style="text-align: center;">
@@ -547,10 +550,17 @@ foreach ($systemwide_requirements as $req) {
                     $timeline_hours = array_keys($timeline_data);
                     sort($timeline_hours);
 
-                    // Find current requirements for comparison (all vehicle types)
+                    // Find current requirements for comparison (selected station only)
                     $current_requirements = [];
-                    foreach ($system_wide_totals as $type_code => $data) {
+                    foreach ($current_hour_totals as $type_code => $data) {
                         $current_requirements[$type_code] = $data['count'];
+                    }
+                    
+                    // Also initialize any vehicle types that might appear in future hours but not current
+                    foreach ($system_wide_totals as $type_code => $data) {
+                        if (!isset($current_requirements[$type_code])) {
+                            $current_requirements[$type_code] = 0;
+                        }
                     }
 
                     // Check each hour after current hour for a change
@@ -559,8 +569,8 @@ foreach ($systemwide_requirements as $req) {
                         
                         $hour_totals = [];
                         
-                        // Initialize all vehicle type counts to 0
-                        foreach ($system_wide_totals as $type_code => $data) {
+                        // Initialize all vehicle type counts to 0 (same types as current requirements)
+                        foreach ($current_requirements as $type_code => $count) {
                             $hour_totals[$type_code] = 0;
                         }
                         
@@ -580,15 +590,27 @@ foreach ($systemwide_requirements as $req) {
                         // Check if requirements changed for any vehicle type
                         $requirements_changed = false;
                         foreach ($current_requirements as $type_code => $current_count) {
-                            if ($hour_totals[$type_code] != $current_count) {
+                            $future_count = isset($hour_totals[$type_code]) ? $hour_totals[$type_code] : 0;
+                            if ($future_count != $current_count) {
                                 $requirements_changed = true;
                                 break;
                             }
                         }
                         
                         if ($requirements_changed) {
-                            $next_change_time = DateTime::createFromFormat('H:i', $hour);
-                            $next_change_totals = $hour_totals;
+                            $next_change_time = DateTime::createFromFormat('H:i', $hour, new DateTimeZone('Europe/London'));
+                            // Build proper structure for next_change_totals with type names
+                            $next_change_totals = [];
+                            foreach ($hour_totals as $type_code => $count) {
+                                if ($count > 0) {
+                                    // Find the type name from current_hour_totals or system_wide_totals
+                                    $type_name = isset($current_hour_totals[$type_code]) 
+                                        ? $current_hour_totals[$type_code]['type_name']
+                                        : (isset($system_wide_totals[$type_code]) ? $system_wide_totals[$type_code]['type_name'] : $type_code);
+                                    
+                                    $next_change_totals[$type_code] = $count;
+                                }
+                            }
                             break;
                         }
                     }
@@ -600,8 +622,8 @@ foreach ($systemwide_requirements as $req) {
                             
                             $hour_totals = [];
                             
-                            // Initialize all vehicle type counts to 0
-                            foreach ($system_wide_totals as $type_code => $data) {
+                            // Initialize all vehicle type counts to 0 (same types as current requirements)
+                            foreach ($current_requirements as $type_code => $count) {
                                 $hour_totals[$type_code] = 0;
                             }
                             
@@ -621,15 +643,27 @@ foreach ($systemwide_requirements as $req) {
                             // Check if requirements changed for any vehicle type
                             $requirements_changed = false;
                             foreach ($current_requirements as $type_code => $current_count) {
-                                if ($hour_totals[$type_code] != $current_count) {
+                                $future_count = isset($hour_totals[$type_code]) ? $hour_totals[$type_code] : 0;
+                                if ($future_count != $current_count) {
                                     $requirements_changed = true;
                                     break;
                                 }
                             }
                             
                             if ($requirements_changed) {
-                                $next_change_time = DateTime::createFromFormat('H:i', $hour);
-                                $next_change_totals = $hour_totals;
+                                $next_change_time = DateTime::createFromFormat('H:i', $hour, new DateTimeZone('Europe/London'));
+                                // Build proper structure for next_change_totals with type names
+                                $next_change_totals = [];
+                                foreach ($hour_totals as $type_code => $count) {
+                                    if ($count > 0) {
+                                        // Find the type name from current_hour_totals or system_wide_totals
+                                        $type_name = isset($current_hour_totals[$type_code]) 
+                                            ? $current_hour_totals[$type_code]['type_name']
+                                            : (isset($system_wide_totals[$type_code]) ? $system_wide_totals[$type_code]['type_name'] : $type_code);
+                                        
+                                        $next_change_totals[$type_code] = $count;
+                                    }
+                                }
                                 break;
                             }
                         }
@@ -652,6 +686,8 @@ foreach ($systemwide_requirements as $req) {
                             'ORV' => '#7c3aed'   // Purple
                         ];
                         
+                        // Sort vehicle types for consistent ordering
+                        ksort($next_change_totals);
                         foreach ($next_change_totals as $type_code => $count): 
                             $color = isset($vehicle_colors[$type_code]) ? $vehicle_colors[$type_code] : '#6b7280';
                         ?>

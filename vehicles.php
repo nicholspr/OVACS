@@ -9,6 +9,7 @@ include 'includes/database.php';
 // Initialize managers
 $vehicleManager = new VehicleManager();
 $stationManager = new StationManager();
+$statusManager = new StatusManager();
 
 // Get filters from URL
 $filters = [];
@@ -55,16 +56,53 @@ if (isset($_GET['msg'])) {
     }
 }
 
+// Function to adjust color brightness for gradients
+if (!function_exists('adjustBrightness')) {
+    function adjustBrightness($hexColor, $adjustPercent) {
+        $hexColor = ltrim($hexColor, '#');
+        if (strlen($hexColor) == 3) {
+            $hexColor = $hexColor[0] . $hexColor[0] . $hexColor[1] . $hexColor[1] . $hexColor[2] . $hexColor[2];
+        }
+        $r = hexdec(substr($hexColor, 0, 2));
+        $g = hexdec(substr($hexColor, 2, 2));
+        $b = hexdec(substr($hexColor, 4, 2));
+        
+        $r = max(0, min(255, $r + ($r * $adjustPercent / 100)));
+        $g = max(0, min(255, $g + ($g * $adjustPercent / 100)));
+        $b = max(0, min(255, $b + ($b * $adjustPercent / 100)));
+        
+        return sprintf('#%02x%02x%02x', $r, $g, $b);
+    }
+}
+
 // Get data
 try {
     $vehicles = $vehicleManager->getAllVehicles($filters);
     $stations = $stationManager->getAllStations();
+    $statusTypes = $statusManager->getAllStatusTypes();
     $allVehicles = $vehicleManager->getAllVehicles(); // For count comparison
+    
+    // Get vehicle status counts for hero cards
+    $pdo = DatabaseConfig::getConnection();
+    $statusQuery = $pdo->prepare("
+        SELECT 
+            st.status_name,
+            st.color_code,
+            COUNT(v.id) as count
+        FROM status_types st
+        LEFT JOIN vehicles v ON v.status_id = st.id
+        GROUP BY st.id, st.status_name, st.color_code
+        ORDER BY st.status_name
+    ");
+    $statusQuery->execute();
+    $statusCounts = $statusQuery->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     $error = "Unable to load data: " . $e->getMessage();
     $vehicles = [];
     $stations = [];
+    $statusTypes = [];
     $allVehicles = [];
+    $statusCounts = [];
 }
 ?>
 <!DOCTYPE html>
@@ -102,6 +140,26 @@ try {
         form {
             z-index: 999 !important;
             position: relative !important;
+        }
+        
+        /* Status cards styling */
+        .status-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .status-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .status-cards {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -148,6 +206,55 @@ try {
                 </div>
             <?php endif; ?>
             
+            <!-- Vehicle Status Cards -->
+            <?php if (!empty($statusCounts)): ?>
+                <div class="status-cards">
+                    <?php 
+                    $totalVehicles = 0;
+                    foreach ($statusCounts as $status): 
+                        $totalVehicles += $status['count'];
+                        $gradientStart = $status['color_code'];
+                        $gradientEnd = adjustBrightness($status['color_code'], -20);
+                    ?>
+                        <div style="
+                            background: linear-gradient(135deg, <?php echo $gradientStart; ?> 0%, <?php echo $gradientEnd; ?> 100%);
+                            padding: 1.5rem;
+                            border-radius: 10px;
+                            color: white;
+                            text-align: center;
+                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                            transition: transform 0.2s ease;
+                        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
+                                <?php echo number_format($status['count']); ?>
+                            </div>
+                            <div style="font-size: 0.875rem; font-weight: 600; opacity: 0.9;">
+                                <?php echo htmlspecialchars($status['status_name']); ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                    
+                    <!-- Total Vehicles Card -->
+                    <div style="
+                        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+                        padding: 1.5rem;
+                        border-radius: 10px;
+                        color: white;
+                        text-align: center;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                        transition: transform 0.2s ease;
+                        border: 2px solid #374151;
+                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
+                            <?php echo number_format($totalVehicles); ?>
+                        </div>
+                        <div style="font-size: 0.875rem; font-weight: 600; opacity: 0.9;">
+                            Total Vehicles
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
             <!-- Filter Controls -->
             <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 2rem;">
                 <form method="GET" action="vehicles.php" style="display: block !important;">
@@ -177,10 +284,11 @@ try {
                             <label style="display: block; margin-bottom: 5px; font-weight: 600;">Status:</label>
                             <select name="status" style="padding: 8px 12px !important; border: 1px solid #ced4da !important; border-radius: 5px !important; background: white !important; min-width: 150px !important; pointer-events: auto !important; z-index: 999 !important; position: relative !important;">
                                 <option value="">All Status</option>
-                                <option value="Available" <?php echo ($_GET['status'] ?? '') === 'Available' ? 'selected' : ''; ?>>Available</option>
-                                <option value="In Service" <?php echo ($_GET['status'] ?? '') === 'In Service' ? 'selected' : ''; ?>>In Service</option>
-                                <option value="Out of Service" <?php echo ($_GET['status'] ?? '') === 'Out of Service' ? 'selected' : ''; ?>>Out of Service</option>
-                                <option value="Maintenance" <?php echo ($_GET['status'] ?? '') === 'Maintenance' ? 'selected' : ''; ?>>Maintenance</option>
+                                <?php foreach ($statusTypes as $status): ?>
+                                    <option value="<?php echo htmlspecialchars($status['status_name']); ?>" <?php echo ($_GET['status'] ?? '') === $status['status_name'] ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($status['status_name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         
@@ -224,13 +332,6 @@ try {
                             </tr>
                         <?php else: ?>
                             <?php foreach ($vehicles as $vehicle): 
-                                $statusColor = match($vehicle['status']) {
-                                    'Available' => '#10b981',
-                                    'In Service' => '#ef4444',
-                                    'Maintenance' => '#f59e0b',
-                                    'Out of Service' => '#6b7280',
-                                    default => '#6b7280'
-                                };
                                 $lastUpdated = new DateTime($vehicle['updated_at']);
                             ?>
                             <tr style="border-bottom: 1px solid #f3f4f6;">
@@ -250,7 +351,7 @@ try {
                                     </div>
                                 </td>
                                 <td style="padding: 1rem;">
-                                    <span style="background: <?php echo $statusColor; ?>; color: white; padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.85rem;">
+                                    <span style="background: <?php echo htmlspecialchars($vehicle['status_color']); ?>; color: white; padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.85rem;">
                                         <?php echo htmlspecialchars($vehicle['status']); ?>
                                     </span>
                                 </td>
@@ -258,14 +359,16 @@ try {
                                 <td style="padding: 1rem;">
                                     <form method="POST" action="vehicles.php" style="display: inline-block;">
                                         <input type="hidden" name="action" value="update_status">
-                                        <input type="hidden" name="vehicle_id" value="<?php echo htmlspecialchars($vehicle['vehicle_id']); ?>">
+                                        <input type="hidden" name="vehicle_id" value="<?php echo htmlspecialchars($vehicle['id']); ?>">
                                         <select name="new_status" onchange="this.form.submit()" 
                                                 style="padding: 0.4rem 0.8rem; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">
                                             <option value="">Update Status...</option>
-                                            <option value="Available" <?php echo $vehicle['status'] === 'Available' ? 'disabled' : ''; ?>>Available</option>
-                                            <option value="In Service" <?php echo $vehicle['status'] === 'In Service' ? 'disabled' : ''; ?>>In Service</option>
-                                            <option value="Maintenance" <?php echo $vehicle['status'] === 'Maintenance' ? 'disabled' : ''; ?>>Maintenance</option>
-                                            <option value="Out of Service" <?php echo $vehicle['status'] === 'Out of Service' ? 'disabled' : ''; ?>>Out of Service</option>
+                                            <?php foreach ($statusTypes as $status): ?>
+                                                <option value="<?php echo htmlspecialchars($status['status_name']); ?>" 
+                                                        <?php echo $vehicle['status'] === $status['status_name'] ? 'disabled' : ''; ?>>
+                                                    <?php echo htmlspecialchars($status['status_name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
                                         </select>
                                         <input type="hidden" name="reason" value="Status updated via web interface">
                                         <!-- Preserve current filters -->
