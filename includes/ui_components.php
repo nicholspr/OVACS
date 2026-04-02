@@ -66,7 +66,7 @@ function renderVehicleStatusCards($statusData, $totalVehicles = null) {
     
     foreach ($statusData as $status) {
         $darkColor = adjustBrightness($status['color_code'], -20);
-        $output .= '<div class="stat-card" style="background: linear-gradient(135deg, ' . $status['color_code'] . ', ' . $darkColor . '); color: white;">';
+        $output .= '<div class="stat-card" style="background: linear-gradient(135deg, ' . $status['color_code'] . ', ' . $darkColor . '); color: white; text-align: center;">';
         $output .= '<h3>' . $status['count'] . '</h3>';
         $output .= '<p>' . htmlspecialchars($status['status_name']) . '</p>';
         $output .= '</div>';
@@ -74,7 +74,7 @@ function renderVehicleStatusCards($statusData, $totalVehicles = null) {
     
     // Add total vehicles card if provided
     if ($totalVehicles !== null) {
-        $output .= '<div class="stat-card" style="background: linear-gradient(135deg, #4a5568, #2d3748); color: white; border: 1px solid #e2e8f0;">';
+        $output .= '<div class="stat-card" style="background: linear-gradient(135deg, #4a5568, #2d3748); color: white; border: 1px solid #e2e8f0; text-align: center;">';
         $output .= '<h3>' . $totalVehicles . '</h3>';
         $output .= '<p>Total Vehicles</p>';
         $output .= '</div>';
